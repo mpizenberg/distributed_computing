@@ -34,7 +34,7 @@ def launch_clients_threads_loop(server_socket, stop_function, threaded_function,
                 # Launch a function in another thread with this client socket.
                 client_thread = threading.Thread(
                     target = threaded_function,
-                    args = (client_socket, *args),
+                    args = (client_socket, ) + args,
                     kwargs = kwargs)
                 client_thread.start()
             except socket.timeout:
