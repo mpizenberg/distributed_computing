@@ -22,12 +22,21 @@ def launch_clients_threads_loop(server_socket, threaded_function, **kwargs):
     """
     """
     print("Waiting for clients ...")
-    while True:
-        # Accept connections from outside (blocking).
-        (client_socket, address) = server_socket.accept()
-        # Launch a function in another thread with this client socket.
-        client_thread = threading.Thread(
-            target = threaded_function,
-            args = (client_socket, ),
-            kwargs = kwargs)
-        client_thread.run()
+    try:
+        sockets_list = []
+        while True:
+            # Accept connections from outside (blocking).
+            (client_socket, address) = server_socket.accept()
+            sockets_list.append(client_socket)
+            # Launch a function in another thread with this client socket.
+            client_thread = threading.Thread(
+                target = threaded_function,
+                args = (client_socket, ),
+                kwargs = kwargs)
+            client_thread.run()
+    except KeyboardInterrupt:
+        print("Server stopped by user.")
+        server_socket.close()
+        for s in sockets_list:
+            s.close()
+        # TODO: Take care of possible opened files ?

@@ -14,7 +14,7 @@ import shared_computing
 def main():
     client_socket = socket.socket()
     client_socket.connect(('localhost', 8083))
-    shared_computing.handle_work(client_socket)
+    work_done = shared_computing.handle_work(client_socket)
 
 if __name__ == '__main__':
     main()

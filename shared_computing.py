@@ -20,33 +20,48 @@ FILE_OUT = 2
 def give_work(client_socket, tasks_manager=None):
     """
     """
+    work_done = False
     # Get a task from the tasks manager.
     (task_id, task) = tasks_manager.get_next_task()
     if task_id is not None:
         # Send task through the client socket.
-        task.send_through(client_socket)
-        # Wait for the answer.
-        (done, result) = task.retrieve_result(client_socket)
-        # Give back the results to the tasks manager.
-        tasks_manager.update(task_id, done, result)
+        task_sent = task.send_through(client_socket)
+        if task_sent:
+            # Wait for the answer.
+            (work_done, result) = task.retrieve_result(client_socket)
+            # Give back the results to the tasks manager.
+            tasks_manager.update(task_id, work_done, result)
+        else:
+            client_socket.close()
+    return work_done
 
 def handle_work(client_socket):
     """
     """
-    # First get the type of task to do.
-    task_type = int.from_bytes(client.recv_msg(client_socket, 1), 'little')
-    # Then get the command message size.
-    msg_length = int.from_bytes(client.recv_msg(client_socket, 4), 'little')
-    # Then get the command itself.
-    cmd_msg = client.recv_msg(client_socket, msg_length).decode()
+    work_done = False
+    try:
+        # First get the type of task to do.
+        task_type = int.from_bytes(client.recv_msg(client_socket, 1), 'little')
+        # Then get the command message size.
+        msg_length = int.from_bytes(client.recv_msg(client_socket, 4), 'little')
+        # Then get the command itself.
+        cmd_msg = client.recv_msg(client_socket, msg_length).decode()
 
-    # Now execute the task.
-    task = Task(cmd_msg, task_type)
-    result = task.execute()
+        # Now execute the task.
+        task = Task(cmd_msg, task_type)
+        result = task.execute()
 
-    # Finally return the results.
-    client.send_msg(client_socket, len(result).to_bytes(4,'little'))
-    client.send_msg(client_socket, result)
+        # Finally return the results.
+        client.send_msg(client_socket, len(result).to_bytes(4,'little'))
+        client.send_msg(client_socket, result)
+        work_done = True
+    except RuntimeError as err:
+        print("Runtime Error: {}".format(err))
+        client_socket.close()
+    except KeyboardInterrupt:
+        print("Client stopped by user.")
+        client_socket.close()
+    return work_done
 
 
 class Task:
@@ -59,35 +74,54 @@ class Task:
     def send_through(self, client_socket):
         """
         """
-        # First send the task type.
-        type_msg = self.task_type.to_bytes(1,'little')
-        client.send_msg(client_socket, type_msg)
-        # Then send the command size.
-        cmd_msg = str.encode(self.command)
-        msg_length = len(cmd_msg).to_bytes(4,'little')
-        client.send_msg(client_socket, msg_length)
-        # Finally send the command message.
-        client.send_msg(client_socket, cmd_msg)
+        task_sent = False
+        try:
+            # First send the task type.
+            type_msg = self.task_type.to_bytes(1,'little')
+            client.send_msg(client_socket, type_msg)
+            # Then send the command size.
+            cmd_msg = str.encode(self.command)
+            msg_length = len(cmd_msg).to_bytes(4,'little')
+            client.send_msg(client_socket, msg_length)
+            # Finally send the command message.
+            client.send_msg(client_socket, cmd_msg)
+            task_sent = True
+        except RuntimeError as err:
+            print("Runtime Error: {}".format(err))
+            client_socket.close()
+        except KeyboardInterrupt:
+            print("Client stopped by user.")
+            client_socket.close()
+        return task_sent
 
     def retrieve_result(self, client_socket):
         """
         """
-        # First receive the message size.
-        msg_length_bytes = client.recv_msg(client_socket, 4)
-        msg_length = int.from_bytes(msg_length_bytes, 'little')
-        if msg_length > 0:
-            msg_bytes = client.recv_msg(client_socket, msg_length)
-        # Then receive the actual result message.
+        msg_retrieved = False
         msg = None
-        if self.task_type == STD_OUT:
-            msg = msg_bytes.decode()
-        elif self.task_type == FILE_OUT:
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_path = temp_file.name
-                temp_file.write(msg_bytes)
-            msg = temp_path
+        try:
+            # First receive the message size.
+            msg_length_bytes = client.recv_msg(client_socket, 4)
+            msg_length = int.from_bytes(msg_length_bytes, 'little')
+            if msg_length > 0:
+                msg_bytes = client.recv_msg(client_socket, msg_length)
+            # Then receive the actual result message.
+            if self.task_type == STD_OUT:
+                msg = msg_bytes.decode()
+            elif self.task_type == FILE_OUT:
+                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                    temp_path = temp_file.name
+                    temp_file.write(msg_bytes)
+                msg = temp_path
+            msg_retrieved = True
+        except RuntimeError as err:
+            print("Runtime Error: {}".format(err))
+            client_socket.close()
+        except KeyboardInterrupt:
+            print("Client stopped by user.")
+            client_socket.close()
         # Finally return the results.
-        return (True, msg)
+        return (msg_retrieved, msg)
 
     def execute(self):
         """

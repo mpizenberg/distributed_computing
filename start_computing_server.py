@@ -12,15 +12,16 @@ import shared_computing
 
 
 def main():
-    server_socket = server.create_socket('', 8083)
-    tasks_manager = shared_computing.TasksManager([
-        shared_computing.Task("echo 0"),
-        shared_computing.Task("echo 1"),
-        ])
-    server.launch_clients_threads_loop(
-        server_socket,
-        shared_computing.give_work,
-        tasks_manager = tasks_manager)
+    try:
+        server_socket = server.create_socket('', 8083)
+        tasks_manager = shared_computing.TasksManager([
+            shared_computing.Task("sleep 10 && echo 0"),
+            shared_computing.Task("sleep 10 && echo 1"),
+            ])
+        server.launch_clients_threads_loop(
+            server_socket,
+            shared_computing.give_work,
+            tasks_manager = tasks_manager)
 
 
 if __name__ == '__main__':
