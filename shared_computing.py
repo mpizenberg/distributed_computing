@@ -17,23 +17,19 @@ STD_OUT = 1
 FILE_OUT = 2
 
 
-def give_work(client_socket, tasks_manager=None):
+def give_work(client_socket, task):
     """
     """
     work_done = False
-    # Get a task from the tasks manager.
-    (task_id, task) = tasks_manager.get_next_task()
-    if task_id is not None:
-        # Send task through the client socket.
-        task_sent = task.send_through(client_socket)
-        if task_sent:
-            # Wait for the answer.
-            (work_done, result) = task.retrieve_result(client_socket)
-            # Give back the results to the tasks manager.
-            tasks_manager.update(task_id, work_done, result)
-        else:
-            client_socket.close()
-    return work_done
+    result = None
+    # Send task through the client socket.
+    task_sent = task.send_through(client_socket)
+    if task_sent:
+        # Wait for the answer.
+        (work_done, result) = task.retrieve_result(client_socket)
+    else:
+        client_socket.close()
+    return (work_done, result)
 
 def handle_work(client_socket):
     """
@@ -146,6 +142,10 @@ class TasksManager:
         self.tasks_results = [None] * len(tasks_list)
         self.lock = threading.Lock()
 
+    def all_tasks_done(self):
+        with self.lock:
+            return all(status==2 for status in self.tasks_status)
+
     def get_next_task(self):
         """
         """
@@ -158,7 +158,8 @@ class TasksManager:
                     task = self.tasks_list[task_id]
                     break
             # Update status of the task (to working on it).
-            self.tasks_status[task_id] = 1
+            if task_id is not None:
+                self.tasks_status[task_id] = 1
         return (task_id, task)
 
     def update(self, task_id, done, result):

@@ -9,12 +9,20 @@
 
 import socket
 import shared_computing
+import traceback
 
 
 def main():
-    client_socket = socket.socket()
-    client_socket.connect(('localhost', 8083))
-    work_done = shared_computing.handle_work(client_socket)
+    try:
+        client_socket = socket.socket()
+        client_socket.connect(('localhost', 8083))
+        while shared_computing.handle_work(client_socket):
+            pass
+    except ConnectionError as err:
+        print("Connection error: {}".format(err))
+    except BaseException as err:
+        traceback.print_exc()
+    client_socket.close()
 
 if __name__ == '__main__':
     main()

@@ -18,25 +18,33 @@ def create_socket(host_address, port, nb_listen=5):
     return server_socket
 
 
-def launch_clients_threads_loop(server_socket, threaded_function, **kwargs):
+def launch_clients_threads_loop(server_socket, stop_function, threaded_function, *args, **kwargs):
     """
     """
     print("Waiting for clients ...")
     try:
         sockets_list = []
-        while True:
-            # Accept connections from outside (blocking).
-            (client_socket, address) = server_socket.accept()
-            sockets_list.append(client_socket)
-            # Launch a function in another thread with this client socket.
-            client_thread = threading.Thread(
-                target = threaded_function,
-                args = (client_socket, ),
-                kwargs = kwargs)
-            client_thread.run()
+        server_socket.settimeout(1)
+        while not stop_function():
+            try:
+                # Accept connections from outside (blocking).
+                (client_socket, address) = server_socket.accept()
+                client_socket.settimeout(None)
+                sockets_list.append(client_socket)
+                # Launch a function in another thread with this client socket.
+                client_thread = threading.Thread(
+                    target = threaded_function,
+                    args = (client_socket, *args),
+                    kwargs = kwargs)
+                client_thread.start()
+            except socket.timeout:
+                pass
+        print("All tasks done.")
+
     except KeyboardInterrupt:
         print("Server stopped by user.")
-        server_socket.close()
-        for s in sockets_list:
-            s.close()
-        # TODO: Take care of possible opened files ?
+
+    server_socket.close()
+    for s in sockets_list:
+        s.close()
+    # TODO: Take care of possible opened files ?

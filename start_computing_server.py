@@ -11,17 +11,32 @@ import server
 import shared_computing
 
 
+def manage_server_slave(client_socket, tasks_manager):
+    still_connected = True
+    while still_connected and not tasks_manager.all_tasks_done():
+        # Get a task from the tasks manager.
+        (task_id, task) = tasks_manager.get_next_task()
+        if task_id is not None:
+            (work_done, result) = shared_computing.give_work(client_socket, task)
+            still_connected = work_done
+            # Give back the results to the tasks manager.
+            tasks_manager.update(task_id, work_done, result)
+    client_socket.close()
+
+
 def main():
-    try:
-        server_socket = server.create_socket('', 8083)
-        tasks_manager = shared_computing.TasksManager([
-            shared_computing.Task("sleep 10 && echo 0"),
-            shared_computing.Task("sleep 10 && echo 1"),
-            ])
-        server.launch_clients_threads_loop(
-            server_socket,
-            shared_computing.give_work,
-            tasks_manager = tasks_manager)
+    server_socket = server.create_socket('', 8083)
+    tasks_manager = shared_computing.TasksManager([
+        shared_computing.Task("sleep 10 && echo 0"),
+        shared_computing.Task("sleep 10 && echo 1"),
+        shared_computing.Task("sleep 10 && echo 2"),
+        shared_computing.Task("sleep 10 && echo 3"),
+        ])
+    server.launch_clients_threads_loop(
+        server_socket,
+        tasks_manager.all_tasks_done,
+        manage_server_slave,
+        tasks_manager)
 
 
 if __name__ == '__main__':
