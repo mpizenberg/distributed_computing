@@ -8,7 +8,7 @@
 # pylint: disable=bad-whitespace, line-too-long, multiple-imports, multiple-statements
 
 import socket
-import shared_computing
+import distributed_computing
 import traceback
 
 
@@ -16,7 +16,7 @@ def main():
     try:
         client_socket = socket.socket()
         client_socket.connect(('localhost', 8083))
-        while shared_computing.handle_work(client_socket):
+        while distributed_computing.handle_work(client_socket):
             pass
     except ConnectionError as err:
         print("Connection error: {}".format(err))
