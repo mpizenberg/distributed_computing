@@ -9,6 +9,7 @@
 
 import server
 import distributed_computing
+import argparse
 
 
 def manage_server_slave(client_socket, tasks_manager):
@@ -24,8 +25,8 @@ def manage_server_slave(client_socket, tasks_manager):
     client_socket.close()
 
 
-def main():
-    server_socket = server.create_socket('', 8083)
+def main(args):
+    server_socket = server.create_socket(args.address, args.port)
     tasks_manager = distributed_computing.TasksManager([
         distributed_computing.Task("sleep 10 && echo 0"),
         distributed_computing.Task("sleep 10 && echo 1"),
@@ -40,4 +41,15 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.set_defaults(func=main)
+    parser.add_argument('-v', '--version', action='version', version='0.1')
+    parser.add_argument('-a', '--address', metavar='address', default='',
+                        help='address for the server socket (eg. localhost or 0.0.0.0)')
+    parser.add_argument('-p', '--port', metavar='port', type=int, default=8080,
+                        help='port on which the server will run.')
+    parser.add_argument('-t', '--tasks', metavar='filepath', default=None,
+                        help='file containing the commands to run, if not specified, \
+                        commands will be read through stdin')
+    args = parser.parse_args()
+    args.func(args)
