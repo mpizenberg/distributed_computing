@@ -49,6 +49,7 @@ def handle_work(client_socket):
     """
     work_done = False
     try:
+        print("waiting for work ...")
         # First get the type of task to do.
         task_type = int.from_bytes(client.recv_msg(client_socket, 1), 'little')
         # Then get the command message size.
@@ -57,12 +58,15 @@ def handle_work(client_socket):
         cmd_msg = client.recv_msg(client_socket, msg_length).decode()
 
         # Now execute the task.
+        print("working ...")
         task = Task(cmd_msg, task_type)
         result = task.execute()
 
         # Finally return the results.
+        print("sending back result ...")
         client.send_msg(client_socket, len(result).to_bytes(4,'little'))
         client.send_msg(client_socket, result)
+        print("done")
         work_done = True
     except RuntimeError as err:
         print("Runtime Error: {}".format(err))
