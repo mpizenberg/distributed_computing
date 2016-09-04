@@ -13,6 +13,9 @@ def create_socket(host_address, port, nb_listen=5):
     return: a server socket.
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Tell the kernel to reuse the local socket in TIME_WAIT state,
+    # without waiting for its natural timeout to expire.
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host_address, port))
     server_socket.listen(nb_listen)
     return server_socket
@@ -44,6 +47,7 @@ def launch_clients_threads_loop(server_socket, stop_function, threaded_function,
     except KeyboardInterrupt:
         print("Server stopped by user.")
 
+    server_socket.settimeout(None)
     server_socket.close()
     for s in sockets_list:
         s.close()
