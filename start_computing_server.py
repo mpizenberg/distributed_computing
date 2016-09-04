@@ -10,14 +10,17 @@
 import server
 import distributed_computing
 import argparse
+import sys
 
 
 def load_tasks(filepath = None):
-    tasks_list = []
+    commands_list = []
     if filepath is not None:
         with open(filepath) as f:
             commands_list = [command[:-1] for command in f.readlines()]
-            tasks_list = list(map(distributed_computing.Task, commands_list))
+    else:
+        commands_list = [command[:-1] for command in sys.stdin.readlines()]
+    tasks_list = list(map(distributed_computing.Task, commands_list))
     return tasks_list
 
 def main(args):
