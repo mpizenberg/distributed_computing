@@ -9,6 +9,7 @@ import client
 import tempfile
 import threading
 import subprocess
+import sys
 
 
 # Define the different tasks types:
@@ -23,6 +24,7 @@ def manage_server_slave(client_socket, tasks_manager):
         # Get a task from the tasks manager.
         (task_id, task) = tasks_manager.get_next_task()
         if task_id is not None:
+            tasks_manager.print_progress()
             (work_done, result) = give_work(client_socket, task)
             still_connected = work_done
             # Give back the results to the tasks manager.
@@ -185,6 +187,12 @@ class TasksManager:
         with self.lock:
             self.tasks_status[task_id] = 2 if done else 0
             self.tasks_results[task_id] = result
-        if done:
-            print("task " + str(task_id) + " done:")
-            print(result)
+        self.print_progress()
+
+    def print_progress(self):
+        length = len(self.tasks_status)
+        sys.stdout.write("[%s]" % ''.join(map(str, self.tasks_status)))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (length+2))
+        if self.all_tasks_done():
+            sys.stdout.write("\n")
