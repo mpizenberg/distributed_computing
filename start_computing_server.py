@@ -12,14 +12,17 @@ import distributed_computing
 import argparse
 
 
+def load_tasks(filepath = None):
+    tasks_list = []
+    if filepath is not None:
+        with open(filepath) as f:
+            commands_list = [command[:-1] for command in f.readlines()]
+            tasks_list = list(map(distributed_computing.Task, commands_list))
+    return tasks_list
+
 def main(args):
     server_socket = server.create_socket(args.address, args.port)
-    tasks_manager = distributed_computing.TasksManager([
-        distributed_computing.Task("sleep 10 && echo 0"),
-        distributed_computing.Task("sleep 10 && echo 1"),
-        distributed_computing.Task("sleep 10 && echo 2"),
-        distributed_computing.Task("sleep 10 && echo 3"),
-        ])
+    tasks_manager = distributed_computing.TasksManager(load_tasks(args.tasks))
     server.launch_clients_threads_loop(
         server_socket,
         tasks_manager.all_tasks_done,
