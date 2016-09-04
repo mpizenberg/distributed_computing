@@ -17,6 +17,19 @@ STD_OUT = 1
 FILE_OUT = 2
 
 
+def manage_server_slave(client_socket, tasks_manager):
+    still_connected = True
+    while still_connected and not tasks_manager.all_tasks_done():
+        # Get a task from the tasks manager.
+        (task_id, task) = tasks_manager.get_next_task()
+        if task_id is not None:
+            (work_done, result) = give_work(client_socket, task)
+            still_connected = work_done
+            # Give back the results to the tasks manager.
+            tasks_manager.update(task_id, work_done, result)
+    client_socket.close()
+
+
 def give_work(client_socket, task):
     """
     """

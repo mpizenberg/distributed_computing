@@ -12,19 +12,6 @@ import distributed_computing
 import argparse
 
 
-def manage_server_slave(client_socket, tasks_manager):
-    still_connected = True
-    while still_connected and not tasks_manager.all_tasks_done():
-        # Get a task from the tasks manager.
-        (task_id, task) = tasks_manager.get_next_task()
-        if task_id is not None:
-            (work_done, result) = distributed_computing.give_work(client_socket, task)
-            still_connected = work_done
-            # Give back the results to the tasks manager.
-            tasks_manager.update(task_id, work_done, result)
-    client_socket.close()
-
-
 def main(args):
     server_socket = server.create_socket(args.address, args.port)
     tasks_manager = distributed_computing.TasksManager([
@@ -36,7 +23,7 @@ def main(args):
     server.launch_clients_threads_loop(
         server_socket,
         tasks_manager.all_tasks_done,
-        manage_server_slave,
+        distributed_computing.manage_server_slave,
         tasks_manager)
 
 
