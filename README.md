@@ -7,10 +7,10 @@ Your 10h+ computing sessions will now finish in a blink of an eye.
 
 The two example scripts to run respectively on a server machine and on clients machines are:
 
- - `start_computing_server`: run this on the server.
+* `start_computing_server.py`: run this on the server.
    If a file is provided (option --tasks) it will consider each line as a different task.
    Otherwise, tasks have to be written through stdin.
- - `start_computing_client`: run this on the clients.
+* `start_computing_client.py`: run this on the clients.
    Provided the correct address of the server (ip and port), it will connect to it,
    retrieve tasks, execute them, and send the results back to the server.
 
