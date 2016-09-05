@@ -20,6 +20,23 @@ def send_msg(sock, bytes_msg):
     assert bytes_sent == msg_length
     return bytes_sent
 
+def send_sized_msg(sock, bytes_msg):
+    """ Send first the size of the message (coded on 4 bytes little)
+    and then the message itself.
+    """
+    msg_length = len(bytes_msg)
+    send_msg(sock, msg_length.to_bytes(4, 'little'))
+    if msg_length > 0:
+        send_msg(sock, bytes_msg)
+
+def send_typed_msg(sock, msg_type, bytes_msg):
+    """ Send a message with a type encoded over 1 bytes little.
+    """
+    send_msg(sock, msg_type.to_bytes(1, 'little'))
+    send_sized_msg(sock, bytes_msg)
+
+
+
 
 def recv_msg(sock, msg_length, max_chunk_length=2048):
     """ Receive a message from a socket of a given length.
@@ -36,3 +53,20 @@ def recv_msg(sock, msg_length, max_chunk_length=2048):
         bytes_recvd = bytes_recvd + len(chunk)
     assert bytes_recvd == msg_length
     return b''.join(chunks)
+
+def recv_sized_msg(sock):
+    """ Receive first the size of the message (coded on 4 bytes little)
+    and then the message itself.
+    """
+    msg_bytes = None
+    msg_length = int.from_bytes(recv_msg(sock, 4), 'little')
+    if msg_length > 0:
+        msg_bytes = recv_msg(sock, msg_length)
+    return msg_bytes
+
+def recv_typed_msg(sock):
+    """ Receive a message with a type encoded over 1 bytes little.
+    """
+    msg_type = int.from_bytes(recv_msg(sock, 1), 'little')
+    msg_bytes = recv_sized_msg(sock)
+    return (msg_type, msg_bytes)

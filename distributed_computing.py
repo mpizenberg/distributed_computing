@@ -72,12 +72,7 @@ def handle_work(client_socket):
     work_done = False
     try:
         print("waiting for work ...")
-        # First get the type of task to do.
-        task_type = int.from_bytes(client.recv_msg(client_socket, 1), 'little')
-        # Then get the command message size.
-        msg_length = int.from_bytes(client.recv_msg(client_socket, 4), 'little')
-        # Then get the command itself.
-        cmd_msg = client.recv_msg(client_socket, msg_length).decode()
+        (task_type, cmd_msg) = client.recv_typed_msg(client_socket)
 
         # Now execute the task.
         print("working ...")
@@ -86,16 +81,18 @@ def handle_work(client_socket):
 
         # Finally return the results.
         print("sending back result ...")
-        client.send_msg(client_socket, len(result).to_bytes(4,'little'))
-        client.send_msg(client_socket, result)
+        client.send_sized_msg(client_socket, result)
         print("done")
         work_done = True
+
     except RuntimeError as err:
         print("Runtime Error: {}".format(err))
         client_socket.close()
+
     except KeyboardInterrupt:
         print("Client stopped by user.")
         client_socket.close()
+
     return work_done
 
 
@@ -111,15 +108,8 @@ class Task:
         """
         task_sent = False
         try:
-            # First send the task type.
-            type_msg = self.task_type.to_bytes(1,'little')
-            client.send_msg(client_socket, type_msg)
-            # Then send the command size.
             cmd_msg = str.encode(self.command)
-            msg_length = len(cmd_msg).to_bytes(4,'little')
-            client.send_msg(client_socket, msg_length)
-            # Finally send the command message.
-            client.send_msg(client_socket, cmd_msg)
+            client.send_typed_msg(client_socket, self.task_type, cmd_msg)
             task_sent = True
         except RuntimeError as err:
             print("Runtime Error: {}".format(err))
@@ -135,12 +125,9 @@ class Task:
         msg_retrieved = False
         msg = None
         try:
-            # First receive the message size.
-            msg_length_bytes = client.recv_msg(client_socket, 4)
-            msg_length = int.from_bytes(msg_length_bytes, 'little')
-            if msg_length > 0:
-                msg_bytes = client.recv_msg(client_socket, msg_length)
-            # Then receive the actual result message.
+            # First receive the message.
+            msg_bytes = client.recv_sized_msg(client_socket)
+            # Then process it depending of the task type.
             if self.task_type == STD_OUT:
                 msg = msg_bytes.decode()
             elif self.task_type == FILE_OUT:
