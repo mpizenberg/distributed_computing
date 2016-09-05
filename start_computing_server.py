@@ -23,7 +23,8 @@ def load_tasks(filepath = None):
             commands_list = [command[:-1] for command in f.readlines()]
     else:
         commands_list = [command[:-1] for command in sys.stdin.readlines()]
-    tasks_list = list(map(distributed_computing.Task, commands_list))
+    #tasks_list = list(map(distributed_computing.Task, commands_list))
+    tasks_list = [distributed_computing.Task(line, task_type=2) for line in commands_list]
     return tasks_list
 
 def main(args):

@@ -166,9 +166,18 @@ class Task:
         """ Execute a task and get the results in a form of bytes.
         """
         result = None
+        # Execute the task.
+        p = subprocess.Popen(self.command, shell=True, stdout=subprocess.PIPE)
+        # Get the standard output.
+        stdout = p.stdout.read()
+        # If the task type is STD_OUT, stdout actually is the result.
         if self.task_type == STD_OUT:
-            p = subprocess.Popen(self.command, shell=True, stdout=subprocess.PIPE)
-            result = p.stdout.read()
+            result = stdout
+        # If the task type is FILE_OUT,
+        # we consider the stdout to be the filepath of the result file.
+        elif self.task_type == FILE_OUT:
+            with open(stdout[:-1], 'rb') as f:
+                result = f.read()
         return result
 
 
