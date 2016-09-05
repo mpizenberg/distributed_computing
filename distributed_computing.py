@@ -10,6 +10,7 @@ import tempfile
 import threading
 import subprocess
 import sys
+import socketserver
 
 
 # Define the different tasks types:
@@ -18,18 +19,34 @@ STD_OUT = 1
 FILE_OUT = 2
 
 
-def manage_server_slave(client_socket, tasks_manager):
-    still_connected = True
-    while still_connected and not tasks_manager.all_tasks_done():
-        # Get a task from the tasks manager.
-        (task_id, task) = tasks_manager.get_next_task()
-        if task_id is not None:
-            tasks_manager.print_progress()
-            (work_done, result) = give_work(client_socket, task)
-            still_connected = work_done
-            # Give back the results to the tasks manager.
-            tasks_manager.update(task_id, work_done, result)
-    client_socket.close()
+class TasksThreadingTCPServer(socketserver.ThreadingTCPServer):
+    def __init__(self, server_address, tasks_manager):
+        self.allow_reuse_address = True
+        self.tasks_manager = tasks_manager
+        # NO WAY TO SHUTDOWN ALL CLIENTS SOCKETS !!!!!!
+        self.daemon_threads = True
+        super().__init__(server_address, TasksTCPHandler)
+
+
+class TasksTCPHandler(socketserver.BaseRequestHandler):
+    """
+    """
+
+    def handle(self):
+        tasks_manager = self.server.tasks_manager
+        while not tasks_manager.all_tasks_done():
+            # Get a task from the tasks manager.
+            (task_id, task) = tasks_manager.get_next_task()
+            if task_id is not None:
+                tasks_manager.print_progress()
+                (work_done, result) = give_work(self.request, task)
+                # Give back the results to the tasks manager.
+                tasks_manager.update(task_id, work_done, result)
+                if not work_done:
+                    raise RuntimeError("client work not done")
+
+        # Shutdown all clients if all tasks are done.
+        self.server.shutdown()
 
 
 def give_work(client_socket, task):
@@ -45,6 +62,8 @@ def give_work(client_socket, task):
     else:
         client_socket.close()
     return (work_done, result)
+
+
 
 def handle_work(client_socket):
     """

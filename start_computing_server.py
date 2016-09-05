@@ -7,7 +7,6 @@
 # pylint configuration
 # pylint: disable=bad-whitespace, line-too-long, multiple-imports, multiple-statements
 
-import server
 import distributed_computing
 import argparse
 import sys
@@ -24,13 +23,19 @@ def load_tasks(filepath = None):
     return tasks_list
 
 def main(args):
-    server_socket = server.create_socket(args.address, args.port)
-    tasks_manager = distributed_computing.TasksManager(load_tasks(args.tasks))
-    server.launch_clients_threads_loop(
-        server_socket,
-        tasks_manager.all_tasks_done,
-        distributed_computing.manage_server_slave,
-        tasks_manager)
+    try:
+        # Initiate the tasks manager
+        tasks_manager = distributed_computing.TasksManager(load_tasks(args.tasks))
+        # Create the master server socket.
+        server_socket = distributed_computing.TasksThreadingTCPServer(
+            (args.address, args.port), tasks_manager)
+        server_socket.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    print("Closing server")
+    server_socket.shutdown()
+    server_socket.server_close()
+    print("Server closed")
 
 
 if __name__ == '__main__':
