@@ -7,10 +7,11 @@
 
 
 def send_msg(sock, bytes_msg):
-    """ Send a message from a socket.
+    """ Send a single message from a socket.
     """
     bytes_sent = 0
     msg_length = len(bytes_msg)
+    # Send as many times as need to send the complete message.
     while bytes_sent < msg_length:
         sent = sock.send(bytes_msg[bytes_sent:])
         if sent == 0:
@@ -26,6 +27,7 @@ def recv_msg(sock, msg_length, max_chunk_length=2048):
     """
     chunks = []
     bytes_recvd = 0
+    # Receive as many times as need to receive the complete message.
     while bytes_recvd < msg_length:
         chunk = sock.recv(min(msg_length-bytes_recvd, max_chunk_length))
         if chunk == b'':
