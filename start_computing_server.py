@@ -12,7 +12,7 @@ import argparse
 import sys
 
 
-def load_tasks(filepath = None):
+def load_tasks(filepath = None, tasks_type = distributed_computing.STD_OUT):
     """ Load the tasks written in the file.
     If no file is given, get the tasks from stdin.
     Each line of the file will be considered as a different task.
@@ -24,7 +24,8 @@ def load_tasks(filepath = None):
     else:
         commands_list = [command[:-1] for command in sys.stdin.readlines()]
     #tasks_list = list(map(distributed_computing.Task, commands_list))
-    tasks_list = [distributed_computing.Task(line, task_type=2) for line in commands_list]
+    tasks_list = [distributed_computing.Task(line, task_type=tasks_type)\
+                 for line in commands_list]
     return tasks_list
 
 def main(args):
@@ -34,7 +35,12 @@ def main(args):
     """
     try:
         # Initiate the tasks manager
-        tasks_manager = distributed_computing.TasksManager(load_tasks(args.tasks))
+        if args.resultAsFile:
+            tasks_type = distributed_computing.FILE_OUT
+        else:
+            tasks_type = distributed_computing.STD_OUT
+        tasks_manager = distributed_computing.TasksManager(
+            load_tasks(args.tasks, tasks_type))
         # Create the master server socket.
         # This socket is a TCP threaded socket.
         server_socket = distributed_computing.TasksThreadingTCPServer(
@@ -61,5 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--tasks', metavar='filepath', default=None,
                         help='file containing the commands to run, if not specified, \
                         commands will be read through stdin')
+    parser.add_argument('--resultAsFile', action='store_true',
+                        help='expect the results of tasks as files.')
     args = parser.parse_args()
     args.func(args)
