@@ -13,6 +13,10 @@ import sys
 
 
 def load_tasks(filepath = None):
+    """ Load the tasks written in the file.
+    If no file is given, get the tasks from stdin.
+    Each line of the file will be considered as a different task.
+    """
     commands_list = []
     if filepath is not None:
         with open(filepath) as f:
@@ -23,15 +27,22 @@ def load_tasks(filepath = None):
     return tasks_list
 
 def main(args):
+    """ Setup a server socket that will handle connections from clients and give them work.
+    The address of the server socket is (args.address, args.port).
+    The tasks to distribute to the clients are in args.tasks.
+    """
     try:
         # Initiate the tasks manager
         tasks_manager = distributed_computing.TasksManager(load_tasks(args.tasks))
         # Create the master server socket.
+        # This socket is a TCP threaded socket.
         server_socket = distributed_computing.TasksThreadingTCPServer(
             (args.address, args.port), tasks_manager)
+        # Listen for client connections and distribute the work load.
         server_socket.serve_forever()
     except KeyboardInterrupt:
         pass
+    # If the serve_forever() loop ends, close the server socket and returns.
     print("Closing server")
     server_socket.shutdown()
     server_socket.server_close()

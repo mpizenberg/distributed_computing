@@ -14,15 +14,21 @@ import argparse
 
 
 def main(args):
+    """ Create a client socket and wait for instructions from the server
+    at the address (args.address, args.port). Then return the results to the server.
+    """
     try:
+        # Create client socket and connect to server.
         client_socket = socket.socket()
         client_socket.connect((args.address, args.port))
+        # As long as no error is detected, handle work given by the server.
         while distributed_computing.handle_work(client_socket):
             pass
     except ConnectionError as err:
         print("Connection error: {}".format(err))
     except BaseException as err:
         traceback.print_exc()
+    # Always close the socket.
     client_socket.close()
 
 if __name__ == '__main__':
