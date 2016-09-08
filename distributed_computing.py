@@ -11,6 +11,8 @@ import threading
 import subprocess
 import socketserver
 import utils
+import os
+import shutil
 
 # Define the different tasks types:
 NO_OUT = 0
@@ -86,7 +88,7 @@ def handle_work(client_socket):
 
         # Now execute the task.
         print("working ...")
-        task = Task(cmd_msg, task_type)
+        task = Task(cmd_msg, None, task_type)
         result = task.execute()
 
         # Finally return the results.
@@ -111,9 +113,15 @@ class Task:
     The type describes the type of results expected.
     Results can be nothing, stdout or a file.
     """
-    def __init__(self, command, task_type=STD_OUT):
+    def __init__(self, command, result_filepath=None, task_type=STD_OUT):
         self.command = command
+        self.result_filepath = result_filepath
         self.task_type = task_type
+        # Create the directory hierarchy
+        if result_filepath is not None:
+            basedir = os.path.abspath(os.path.dirname(result_filepath))
+            if not os.path.exists(basedir):
+                os.makedirs(basedir)
 
     def send_through(self, client_socket):
         """ Send a task through a client socket to give work to a client computer.
@@ -140,7 +148,10 @@ class Task:
         try:
             # First receive the results message.
             msg_bytes = client.recv_sized_msg(client_socket)
-            if msg_bytes is not None:
+            if msg_bytes is None:
+                if self.task_type == NO_OUT:
+                    msg_retrieved = True
+            else:
                 # Then process it depending on the task type.
                 # For a STD_OUT task, just transform the bytes to string.
                 if self.task_type == STD_OUT:
@@ -161,6 +172,17 @@ class Task:
             client_socket.close()
         # Finally return the results.
         return (msg_retrieved, msg)
+
+    def save_result(self, result):
+        """ Save the result into the appropriate file.
+        """
+        # If the task type is STD_OUT the result is a string.
+        if self.task_type == STD_OUT:
+            with open(self.result_filepath, 'w') as f:
+                f.write(result)
+        # If the task type is FILE_OUT the result is temporary filepath.
+        elif self.task_type == FILE_OUT:
+            shutil.copy(result, self.result_filepath)
 
     def execute(self):
         """ Execute a task and get the results in a form of bytes.
@@ -227,6 +249,8 @@ class TasksManager:
         with self.lock:
             self.tasks_status[task_id] = 2 if done else 0
             self.tasks_results[task_id] = result
+        if done:
+            self.tasks_list[task_id].save_result(result)
         self.print_progress()
 
     def print_progress(self):

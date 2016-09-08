@@ -7,27 +7,43 @@
 # pylint configuration
 # pylint: disable=bad-whitespace, line-too-long, multiple-imports, multiple-statements
 
-import distributed_computing
+import distributed_computing as dis_comp
 import argparse
 import sys
 import os
 from functools import partial
+from itertools import zip_longest
 
 
-def load_tasks(filepath = None, tasks_type = distributed_computing.STD_OUT):
+def load_tasks(tasks_filepath=None,
+        results_filepath=None, types=dis_comp.STD_OUT):
     """ Load the tasks written in the file.
     If no file is given, get the tasks from stdin.
     Each line of the file will be considered as a different task.
     """
+    # First load the commands.
     commands_list = []
-    if filepath is not None:
-        with open(filepath) as f:
+    if tasks_filepath is not None:
+        with open(tasks_filepath) as f:
             commands_list = [command[:-1] for command in f.readlines()]
     else:
+        print("Type down 1 command per line here. Ctrl-D when finished.")
         commands_list = [command[:-1] for command in sys.stdin.readlines()]
-    #tasks_list = list(map(distributed_computing.Task, commands_list))
-    tasks_list = [distributed_computing.Task(line, task_type=tasks_type)\
-                 for line in commands_list]
+    nb_tasks = len(commands_list)
+
+    # Then load the results.
+    results_paths_list = []
+    if results_filepath is None:
+        types = dis_comp.NO_OUT
+    else:
+        with open(results_filepath) as f:
+            results_paths_list = [path[:-1] for path in f.readlines()]
+        assert(len(results_paths_list) == nb_tasks)
+
+    # Finally create the tasks.
+    tasks_list = [dis_comp.Task(command, result_path,  types)\
+        for (command, result_path) in \
+        zip_longest(commands_list, results_paths_list)]
     return tasks_list
 
 def main(args):
@@ -37,15 +53,12 @@ def main(args):
     """
     try:
         # Initiate the tasks manager
-        if args.resultAsFile:
-            tasks_type = distributed_computing.FILE_OUT
-        else:
-            tasks_type = distributed_computing.STD_OUT
-        tasks_manager = distributed_computing.TasksManager(
-            load_tasks(args.tasks, tasks_type))
+        tasks_manager = dis_comp.TasksManager(
+            load_tasks(args.tasks, args.results,
+                dis_comp.FILE_OUT if args.resultsAreFiles else dis_comp.STD_OUT))
         # Create the master server socket.
         # This socket is a TCP threaded socket.
-        server_socket = distributed_computing.TasksThreadingTCPServer(
+        server_socket = dis_comp.TasksThreadingTCPServer(
             (args.address, args.port), tasks_manager)
         # Listen for client connections and distribute the work load.
         server_socket.serve_forever()
@@ -79,7 +92,10 @@ if __name__ == '__main__':
                         type=partial(check_path, should_exist=True), default=None,
                         help='file containing the commands to run, if not specified, \
                         commands will be read through stdin')
-    parser.add_argument('--resultAsFile', action='store_true',
+    parser.add_argument('-r', '--results', metavar='filepath',
+                        type=partial(check_path, should_exist=True), default=None,
+                        help='expect the results of tasks as files.')
+    parser.add_argument('--resultsAreFiles', action='store_true',
                         help='expect the results of tasks as files.')
     args = parser.parse_args()
     args.func(args)

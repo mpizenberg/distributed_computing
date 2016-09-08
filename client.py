@@ -24,7 +24,7 @@ def send_sized_msg(sock, bytes_msg):
     """ Send first the size of the message (coded on 4 bytes little)
     and then the message itself.
     """
-    msg_length = len(bytes_msg)
+    msg_length = len(bytes_msg) if bytes_msg is not None else 0
     send_msg(sock, msg_length.to_bytes(4, 'little'))
     if msg_length > 0:
         send_msg(sock, bytes_msg)
