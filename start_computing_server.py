@@ -25,10 +25,10 @@ def load_tasks(tasks_filepath=None,
     commands_list = []
     if tasks_filepath is not None:
         with open(tasks_filepath) as f:
-            commands_list = [command[:-1] for command in f.readlines()]
+            commands_list = [command.strip() for command in f.readlines()]
     else:
         print("Type down 1 command per line here. Ctrl-D when finished.")
-        commands_list = [command[:-1] for command in sys.stdin.readlines()]
+        commands_list = [command.strip() for command in sys.stdin.readlines()]
     nb_tasks = len(commands_list)
 
     # Then load the results.
@@ -37,7 +37,7 @@ def load_tasks(tasks_filepath=None,
         types = dis_comp.NO_OUT
     else:
         with open(results_filepath) as f:
-            results_paths_list = [path[:-1] for path in f.readlines()]
+            results_paths_list = [path.strip() for path in f.readlines()]
         assert(len(results_paths_list) == nb_tasks)
 
     # Finally create the tasks.

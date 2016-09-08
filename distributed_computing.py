@@ -198,7 +198,7 @@ class Task:
         # If the task type is FILE_OUT,
         # we consider the stdout to be the filepath of the result file.
         elif self.task_type == FILE_OUT:
-            with open(stdout[:-1], 'rb') as f:
+            with open(stdout.strip(), 'rb') as f:
                 result = f.read()
         return result
 
