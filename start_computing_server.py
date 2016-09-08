@@ -10,6 +10,8 @@
 import distributed_computing
 import argparse
 import sys
+import os
+from functools import partial
 
 
 def load_tasks(filepath = None, tasks_type = distributed_computing.STD_OUT):
@@ -56,6 +58,15 @@ def main(args):
     print("Server closed")
 
 
+def check_path(path, should_exist):
+    """ Check that a path (file or folder) exists or not and return it.
+    """
+    path = os.path.normpath(path)
+    if should_exist != os.path.exists(path):
+        msg = "path " + ("does not" if should_exist else "already") + " exist: " + path
+        raise argparse.ArgumentTypeError(msg)
+    return path
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.set_defaults(func=main)
@@ -64,7 +75,8 @@ if __name__ == '__main__':
                         help='address for the server socket (eg. localhost or 0.0.0.0)')
     parser.add_argument('-p', '--port', metavar='port', type=int, default=8080,
                         help='port on which the server will run.')
-    parser.add_argument('-t', '--tasks', metavar='filepath', default=None,
+    parser.add_argument('-t', '--tasks', metavar='filepath',
+                        type=partial(check_path, should_exist=True), default=None,
                         help='file containing the commands to run, if not specified, \
                         commands will be read through stdin')
     parser.add_argument('--resultAsFile', action='store_true',
