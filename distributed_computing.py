@@ -218,6 +218,7 @@ class TasksManager:
 
         # Used to avoid printing several times the last \n when everything is finished
         self.print_control = {'lock': threading.Lock(), 'finished': False}
+        self.print_progress()
 
     def all_tasks_done(self):
         """ Return True if every task has the state done.
