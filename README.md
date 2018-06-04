@@ -32,7 +32,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ## Credits
 
 Thanks Thomas for the inspiration and the strong basis that made this code possible.
-His repository may be found here: [multitask](https://github.com/tforgione/multitask).
 
 For any question of any kind, you may address me an email at:
 matthieu.pizenberg@gmail.com
